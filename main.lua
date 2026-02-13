@@ -24,6 +24,7 @@ cs_hook_mario_update = create_hook_wrapper(HOOK_MARIO_UPDATE)
 
 menu = false
 menuAndTransition = false
+prevMenuAndTransition = false
 gridMenu = mod_storage_load_bool("PrefGridView")
 options = nil; OPTIONS_MAIN = 0; OPTIONS_CREDITS = 1
 prevOptions = nil; optionsTimer = 0
@@ -1107,7 +1108,9 @@ local function mario_update(m)
                 stop_secondary_music(50)
                 m.marioObj.header.gfx.sharedChild.hookProcess = 1
                 camera_unfreeze()
-                hud_show()
+                if prevMenuAndTransition ~= menuAndTransition
+                    hud_show()
+                end
                 set_override_fov(0)
                 if m.area.camera.cutscene == CUTSCENE_CS_MENU then
                     m.area.camera.cutscene = CUTSCENE_STOP
@@ -1491,6 +1494,7 @@ local paletteTrans = 0
 local optionsMenuOffset = 0
 local optionsMenuOffsetMax = 210
 local function on_hud_render()
+    prevMenuAndTransition = menuAndTransition
     local FONT_USER = djui_menu_get_font()
     djui_hud_set_font(FONT_ALIASED)
     djui_hud_set_resolution(RESOLUTION_DJUI)
