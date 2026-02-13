@@ -24,6 +24,7 @@ cs_hook_mario_update = create_hook_wrapper(HOOK_MARIO_UPDATE)
 
 menu = false
 menuAndTransition = false
+prevMenuAndTransition = false
 gridMenu = mod_storage_load_bool("PrefGridView")
 options = nil; OPTIONS_MAIN = 0; OPTIONS_CREDITS = 1
 prevOptions = nil; optionsTimer = 0
@@ -57,33 +58,33 @@ local MENU_BINDS_OPTIONS = 3
 local MENU_BINDS_CREDITS = 4
 local TEXT_TABLE_MENU_BINDS = {
     [MENU_BINDS_DEFAULT] = {
-        {bind = "Up / Down",    desc = "binds_char"},
-        {bind = "Left / Right", desc = "binds_costume"},
-        {bind = "A Button",     desc = "binds_pref_char"},
-        {bind = "B Button",     desc = "binds_exit"},
-        {bind = "X Button",     desc = "binds_grid"},
-        {bind = "Y Button",     desc = "binds_palette"},
-        {bind = "L/R Triggers", desc = "binds_category"},
-        {bind = "Start Button", desc = "binds_options"},
+        {bind = "Up / Down",    desc = "Change Character"},
+        {bind = "Left / Right", desc = "Change Costume"},
+        {bind = "A Button",     desc = "Set Preferred Character"},
+        {bind = "B Button",     desc = "Exit Menu"},
+        {bind = "X Button",     desc = "Toggle Grid View"},
+        {bind = "Y Button",     desc = "Toggle Palette"},
+        {bind = "L/R Triggers", desc = "Change Categories"},
+        {bind = "Start Button", desc = "Options Menu"},
     },
     [MENU_BINDS_GRID] = {
-        {bind = "Up / Down / Left / Right", desc = "binds_char"},
-        {bind = "A Button",     desc = "binds_pref_char"},
-        {bind = "B Button",     desc = "binds_exit"},
-        {bind = "X Button",     desc = "binds_list"},
-        {bind = "Y Button",     desc = "binds_palette"},
-        {bind = "L/R Triggers", desc = "binds_category"},
-        {bind = "Start Button", desc = "binds_options"},
+        {bind = "Up / Down / Left / Right", desc = "Change Character"},
+        {bind = "A Button",     desc = "Set Preferred Character"},
+        {bind = "B Button",     desc = "Exit Menu"},
+        {bind = "X Button",     desc = "Toggle List View"},
+        {bind = "Y Button",     desc = "Toggle Palette"},
+        {bind = "L/R Triggers", desc = "Change Categories"},
+        {bind = "Start Button", desc = "Options Menu"},
     },
     [MENU_BINDS_OPTIONS] = {
-        {bind = "Up / Down",    desc = "binds_options_toggle"},
-        {bind = "Left / Right", desc = "binds_options_toggle"},
-        {bind = "Start / B Button", desc = "binds_options_exit"},
+        {bind = "Up / Down",    desc = "Scroll Options"},
+        {bind = "Left / Right", desc = "Toggle Option"},
+        {bind = "Start / B Button", desc = "Exit Options Menu"},
     },
     [MENU_BINDS_CREDITS] = {
-        {bind = "Up / Down",    desc = "binds_credits_scroll"},
-        {bind = "Left / Right", desc = "binds_credits_switch"},
-        {bind = "Start / B Button", desc = "binds_credits_exit"},
+        {bind = "Up / Down",    desc = "Scroll Credits"},
+        {bind = "Left / Right", desc = "Switch Page"},
+        {bind = "Start / B Button", desc = "Exit Credits Menu"},
     },
 }
 
@@ -363,8 +364,15 @@ local function make_table_ref_num()
     return tableRefNum
 end
 
+OPTION_MENU = "Menu"
+OPTION_CHAR = "Character"
+OPTION_MISC = "Misc"
+OPTION_MOD = "Host"
+OPTION_API = "Packs"
+
 optionTableRef = {
     -- Menu
+    openInputs = make_table_ref_num(),
     notification = make_table_ref_num(),
     menuColor = make_table_ref_num(),
     music = make_table_ref_num(),
@@ -382,113 +390,123 @@ optionTableRef = {
 }
 
 optionTable = {
+    [optionTableRef.openInputs] = {
+        name = "Menu Bind",
+        category = OPTION_MENU,
+        toggle = tonumber(mod_storage_load("MenuInput")),
+        toggleSaveName = "MenuInput",
+        toggleDefault = 1,
+        toggleMax = 2,
+        toggleNames = {"None", "Z (Pause Menu)", ommActive and "D-pad Down + R" or "D-pad Down"},
+        description = {"Sets a Bind to Open the Menu", "rather than using the command."}
+    },
     [optionTableRef.notification] = {
-        name = "notifs",
-        category = "menu_category_menu",
+        name = "Notifications",
+        category = OPTION_MENU,
         toggle = tonumber(mod_storage_load("notifs")),
         toggleSaveName = "notifs",
         toggleDefault = 1,
         toggleMax = 2,
-        toggleNames = {"off", "on", "popups_only"},
-        description = {"notif_desc1", "notif_desc2"}
+        toggleNames = {"Off", "On", "Pop-ups Only"},
+        description = {"Toggles whether Pop-ups and", "Chat Messages display."}
     },
     [optionTableRef.menuColor] = {
-        name = "menu_color",
-        category = "menu_category_menu",
+        name = "Menu Color",
+        category = OPTION_MENU,
         toggle = tonumber(mod_storage_load("MenuColor")),
         toggleSaveName = "MenuColor",
         toggleDefault = 0,
         toggleMax = 10,
-        toggleNames = {"auto", "saved", "red", "orange", "yellow", "green", "blue", "pink", "purple", "white", "black"},
-        description = {"menu_color_desc1"}
+        toggleNames = {"Auto", "Saved", "Red", "Orange", "Yellow", "Green", "Blue", "Pink", "Purple", "White", "Black"},
+        description = {"Toggles the Menu Color"}
     },
     [optionTableRef.music] = {
-        name = "menu_music",
-        category = "menu_category_menu",
+        name = "Menu Music",
+        category = OPTION_MENU,
         toggle = tonumber(mod_storage_load("Music")),
         toggleSaveName = "Music",
         toggleDefault = 1,
         toggleMax = 3,
-        toggleNames = {"off", "on", "Breakroom Only", "Character Only"},
-        description = {"menu_music_desc1", "menu_music_desc2"}
+        toggleNames = {"Off", "On", "Breakroom Only", "Character Only"},
+        description = {"Toggles which music plays", "in the menu."}
     },
     [optionTableRef.inputLatency] = {
-        name = "menu_scroll_speed",
-        category = "menu_category_menu",
+        name = "Menu Scroll Speed",
+        category = OPTION_MENU,
         toggle = tonumber(mod_storage_load("Latency")),
         toggleSaveName = "Latency",
         toggleDefault = 1,
         toggleMax = 2,
-        toggleNames = {"slow", "normal", "fast"},
-        description = {"menu_scroll_speed_desc1", "menu_scroll_speed_desc2"}
+        toggleNames = {"Slow", "Normal", "Fast"},
+        description = {"Sets how fast you scroll", "throughout the Menu"}
     },
     [optionTableRef.localVoices] = {
-        name = "char_voices",
-        category = "menu_category_char",
+        name = "Character Voices",
+        category = OPTION_CHAR,
         toggle = tonumber(mod_storage_load("localVoices")),
         toggleSaveName = "localVoices",
         toggleDefault = 1,
         toggleMax = 2,
-        toggleNames = {"off", "on", "Local Only"},
-        description = {"char_voices_desc1", "char_voices_desc2", "char_voices_desc3"}
+        toggleNames = {"Off", "On", "Local Only"},
+        description = {"Toggle if Custom Voicelines play", "for Characters who support it"}
     },
     [optionTableRef.localVisuals] = {
-        name = "char_visuals",
-        category = "menu_category_char",
+        name = "Character Visuals",
+        category = OPTION_CHAR,
         toggle = tonumber(mod_storage_load("localVisuals")),
         toggleSaveName = "localVisuals",
         toggleDefault = 1,
         toggleMax = 1,
-        description = {"char_visuals_desc1", "char_visuals_desc2", "char_visuals_desc3"}
+        description = {"Toggle if Characters can", "change the apperence of", "Objects and Textures"}
     },
     [optionTableRef.localMoveset] = {
-        name = "char_moveset",
-        category = "menu_category_char",
+        name = "Character Moveset",
+        category = OPTION_CHAR,
         toggle = tonumber(mod_storage_load("localMoveset")),
         toggleSaveName = "localMoveset",
         toggleDefault = 1,
         toggleMax = 1,
-        description = {"char_moveset_desc1", "char_moveset_desc2", "char_moveset_desc3"},
+        description = {"Toggles if Custom Movesets", "are active on compatible", "characters"},
         lock = function ()
             if gGlobalSyncTable.charSelectRestrictMovesets ~= 0 then
-                return "forced_off"
+                return "Forced Off"
             end
         end,
     },
     [optionTableRef.restrictMovesets] = {
-        name = "restrict_movesets",
-        category = "menu_category_host",
+        name = "Restrict Movesets",
+        category = OPTION_MOD,
         toggle = 0,
         toggleDefault = 0,
         toggleMax = 1,
-        description = {"restrict_movesets_desc1", "restrict_movesets_desc2"},
+        description = {"Restricts turning on movesets", "(Host Only)"},
         lock = function ()
             if gGlobalSyncTable.charSelectRestrictMovesets < 2 then
                 if not network_is_server() then
-                    return "host_only"
+                    return "Host Only"
                 end
             else
-                return "api_only"
+                return "API Only"
             end
         end,
     },
     [optionTableRef.resetSaveData] = {
-        name = "reset_save_data",
-        category = "menu_category_misc",
+        name = "Reset Save Data",
+        category = OPTION_MISC,
         toggle = 0,
         toggleDefault = 0,
         toggleMax = 1,
-        toggleNames = {"reset_save_data", "reset_save_data"},
-        description = {"reset_save_data_desc1", "reset_save_data_desc2"}
+        toggleNames = {"Reset Save Data", "Reset Save Data"},
+        description = {"Resets Character Select's", "Save Data"}
     },
     [optionTableRef.credits] = {
-        name = "credits",
-        category = "menu_category_misc",
+        name = "Credits",
+        category = OPTION_MISC,
         toggle = 0,
         toggleDefault = 0,
         toggleMax = 1,
-        toggleNames = {"open_credits", "open_credits"},
-        description = {"credits_desc1", "credits_desc2"}
+        toggleNames = {"Open Credits", "Open Credits"},
+        description = {"Thank you for choosing", "Character Select!"}
     },
 }
 
@@ -518,7 +536,7 @@ local function update_character_render_table()
             end
         end
     end
-    
+
     if #characterTableRender > 0 then
         -- Get icons for category based on name similarity
         if category.icon1 == nil or category.icon2 == nil then
@@ -550,12 +568,10 @@ hookTableOnCharacterChange = {
         -- Switch all models to either Vanilla or the Character's
         set_all_visuals(currChar)
 
-        -- Check for Non-Vanilla Actions when switching Characters
-        if is_mario_in_vanilla_action(m) or m.health < 256 then return end
-
         -- Reset anim to ensure Custom Anims don't leak
         m.marioObj.header.gfx.animInfo.animID = -1
-        
+        -- Check for Non-Vanilla Actions when switching Characters
+        if is_mario_in_vanilla_action(m) or m.health < 256 then return end
         if m.action & ACT_FLAG_RIDING_SHELL ~= 0 then
             set_mario_action(m, ACT_RIDING_SHELL_FALL, 0)
         elseif m.action & ACT_FLAG_ALLOW_FIRST_PERSON ~= 0 then
@@ -616,7 +632,6 @@ creditTable = {
         { creditee = "WinbowBreaker",   credit = "Rendered Menu Assets" },
         { creditee = "xLuigiGamerx",    credit = "HUD Accuracy" },
         { creditee = "Wibblus",         credit = "Menu Anims Code" },
-        { creditee = "DM-Kun",          credit = "German Translation" },
     }
 }
 
@@ -699,7 +714,7 @@ local function load_preferred_char()
             currCharRender = i
             charFound = true
             if optionTable[optionTableRef.notification].toggle > 0 then
-                djui_popup_create(get_lang_string("popup_pref_applied", string_underscore_to_space(char[char.currAlt].name)), 4)
+                djui_popup_create('Character Select:\nYour Preferred Character\n"' .. string_underscore_to_space(char[char.currAlt].name) .. '"\nwas applied successfully!', 4)
             end
             break
         end
@@ -730,14 +745,14 @@ local function load_preferred_char()
 
     if #characterTable < CT_MAX then
         if optionTable[optionTableRef.notification].toggle > 0 then
-            djui_popup_create(get_lang_string("popup_no_chars"), 2)
+            djui_popup_create("Character Select:\nNo Characters were Found", 2)
         end
     else
         if not charFound then
             if savedNick ~= nil then
-                djui_popup_create(get_lang_string("popup_pref_not_found_saved", string_underscore_to_space(savedNick)), 4)
+                djui_popup_create('Character Select:\nYour Preferred Character\n"' .. string_underscore_to_space(savedNick) .. '"\nwas not found.', 4)
             else
-                djui_popup_create(get_lang_string("popup_pref_not_found"), 3)
+                djui_popup_create('Character Select:\nYour Preferred Character\nwas not found.', 3)
             end
         end
     end
@@ -768,16 +783,19 @@ function failsafe_options()
             optionTable[i].toggle = load and tonumber(load) or optionTable[i].toggleDefault
         end
         if optionTable[i].toggleNames == nil then
-            optionTable[i].toggleNames = {"off", "on"}
+            optionTable[i].toggleNames = {"Off", "On"}
         end
+    end
+    if optionTable[optionTableRef.openInputs].toggle == 2 and ommActive then
+        djui_popup_create('Character Select:\nYour Open bind has changed to:\nD-pad Down + R\nDue to OMM Rebirth being active!', 4)
     end
 end
 
 hookTableOnReset = {}
 local promptedAreYouSure = false
-local function reset_options()
+local function reset_options(wasChatTriggered)
     if not promptedAreYouSure then
-        djui_chat_message_create(get_lang_string("menu_reset_are_you_sure"))
+        djui_chat_message_create("\\#ffdcdc\\Are you sure you want to reset your Save Data for Character Select, including your Preferred Character\nand Settings?\n" .. (wasChatTriggered and "Type \\#ff3333\\/char-select reset\\#ffdcdc\\ to confirm." or "Press the \\#ff3333\\" .. optionTable[optionTableRef.resetSaveData].name .. "\\#ffdcdc\\ Option again to confirm." ))
         promptedAreYouSure = true
     else
         for i = 1, #optionTable do
@@ -786,7 +804,7 @@ local function reset_options()
                 mod_storage_save(optionTable[i].toggleSaveName, tostring(optionTable[i].toggle))
             end
             if optionTable[i].toggleNames == nil then
-                optionTable[i].toggleNames = { "off", "on" }
+                optionTable[i].toggleNames = { "Off", "On" }
             end
         end
         for i = 0, #characterTable do
@@ -803,20 +821,21 @@ local function reset_options()
 
         force_set_character()
 
-        djui_chat_message_create(get_lang_string("menu_reset_done"))
+        djui_chat_message_create("\\#ff3333\\Character Select Save Data Reset!")
+        djui_chat_message_create("Note: If your issue has not been resolved, you may need to manually delete your save data via the directory below:\n\\#dcdcFF\\%appdata%/sm64coopdx/sav/character-select-coop.sav")
         promptedAreYouSure = false
     end
 end
 
 local function boot_note()
-    local charCount = (#characterTable + 1)
-    if charCount > CT_MAX then
-        djui_chat_message_create(get_lang_string("menu_boot", charCount))
-        if charCount > 37 and network_is_server() then
-            djui_chat_message_create(get_lang_string("menu_boot_too_many_chars"))
+    local charCount = (#characterTable + 1) - CT_MAX
+    if charCount > 0 then
+        djui_chat_message_create("Character Select has " .. charCount .. " character" .. (charCount > 1 and "s" or "") .." available!\nYou can use \\#ffff33\\/char-select \\#ffffff\\to open the menu!")
+        if charCount > 32 and network_is_server() then
+            djui_chat_message_create("\\#FFAAAA\\Warning: Having a lot of characters\nmay be unstable, For a better experience please\ndisable a few packs!")
         end
     else
-        djui_chat_message_create(get_lang_string("menu_boot_no_chars"))
+        djui_chat_message_create("Character Select is active!\nYou can use \\#ffff33\\/char-select \\#ffffff\\to open the menu!")
     end
 end
 
@@ -896,7 +915,7 @@ local worldColor = {
     ambient = {r = 255, g = 255, b = 255}
 }
 local menuOffsetX = 0
-local menuOffsetY = 0 
+local menuOffsetY = 0
 local camScale = 1
 local prevMusicToggle = 1
 local prevVisualToggle = 1
@@ -912,7 +931,7 @@ local function mario_update(m)
         end
         queueStorageFailsafe = false
     end
-    
+
     local np = gNetworkPlayers[m.playerIndex]
     local p = gCSPlayers[m.playerIndex]
 
@@ -937,7 +956,7 @@ local function mario_update(m)
                     if prevLockState == LOCKED_TRUE then -- Character was unlocked
                         if startup_init_stall() and notif then
                             if optionTable[optionTableRef.notification].toggle > 0 then
-                                djui_popup_create(get_lang_string("popup_unlocked", char[1].name), 3)
+                                djui_popup_create('Character Select:\nUnlocked '..tostring(char[1].name)..'\nas a Playable Character!', 3)
                             end
                         end
                     end
@@ -945,7 +964,7 @@ local function mario_update(m)
             end
         end
 
-        if djui_hud_is_pause_menu_created() then     
+        if djui_hud_is_pause_menu_created() then
             if prevBaseCharFrame ~= np.modelIndex then
                 force_set_character(np.modelIndex)
                 p.presetPalette = 0
@@ -971,7 +990,7 @@ local function mario_update(m)
         local charTable = characterTable[currChar]
         p.saveName = charTable.saveName
         p.currAlt = charTable.currAlt
-    
+
         p.modelId = charTable[charTable.currAlt].model
         if charTable[charTable.currAlt].baseChar ~= nil then
             p.baseChar = charTable[charTable.currAlt].baseChar
@@ -1107,7 +1126,9 @@ local function mario_update(m)
                 stop_secondary_music(50)
                 m.marioObj.header.gfx.sharedChild.hookProcess = 1
                 camera_unfreeze()
-                hud_show()
+                if prevMenuAndTransition ~= menuAndTransition then
+                    hud_show()
+                end
                 set_override_fov(0)
                 if m.area.camera.cutscene == CUTSCENE_CS_MENU then
                     m.area.camera.cutscene = CUTSCENE_STOP
@@ -1162,7 +1183,7 @@ local function mario_update(m)
 
         --Reset Save Data Check
         if optionTable[optionTableRef.resetSaveData].toggle > 0 then
-            reset_options()
+            reset_options(false)
             optionTable[optionTableRef.resetSaveData].toggle = 0
         end
         charBeingSet = false
@@ -1327,12 +1348,12 @@ function set_model(o, model, extendedModel, charNum)
         if o.unused1 ~= extendedModel and currReplace == nil then
             o.unused1 = extendedModel
         end
-        
+
         local model = run_func_or_get_var(currReplace, o, o.unused1) or o.unused1
         if not visualToggle then
             model = o.unused1
         end
-        
+
         if obj_has_model_extended(o, model) == 0 then
             settingModel = true
             obj_set_model_extended(o, model)
@@ -1412,12 +1433,28 @@ end
 local optionAnimTimer = -200
 local optionAnimTimerCap = optionAnimTimer
 
+--Basic Menu Text
+local yearsOfCS = get_date_and_time().year - 123 -- Zero years as of 2023
+local TEXT_VERSION = "Version: " .. MOD_VERSION_STRING .. " | sm64coopdx" .. (seasonalEvent == SEASON_EVENT_BIRTHDAY and (" | " .. tostring(yearsOfCS) .. " year" .. (yearsOfCS > 1 and "s" or "") .. " of Character Select!") or "")
+local TEXT_RATIO_UNSUPPORTED = "Your Current Aspect-Ratio isn't Supported!"
+local TEXT_PAUSE_Z_OPEN = "Z Button - Character Select"
+local TEXT_PAUSE_UNAVAILABLE = "Character Select is Unavailable"
+local TEXT_PAUSE_CURR_CHAR = "Current Character: "
+local TEXT_MOVESET_RESTRICTED = "Movesets are Restricted"
+local TEXT_PALETTE_RESTRICTED = "Palettes are Restricted"
+local TEXT_MOVESET_AND_PALETTE_RESTRICTED = "Moveset and Palettes are Restricted"
 -- Easter Egg if you get lucky loading the mod
 -- Referencing the original sm64ex DynOS options by PeachyPeach >v<
-local easterEggDynOS = math.random(100) == 64
+if math.random(100) == 64 then
+    TEXT_PAUSE_Z_OPEN = "Z - DynOS"
+    TEXT_PAUSE_CURR_CHAR = "Model: "
+end
 
 --Options/Credits Text
+local TEXT_LOCAL_MODEL_ERROR = "Failed to find a Character Model"
+local TEXT_LOCAL_MODEL_ERROR_FIX = "Please Verify the Integrity of the Pack!"
 local TEXT_KOFI_LINK = "ko-fi.com/squishy6094"
+local TEXT_CREDITS_HEADER = "CREDITS"
 
 local MATH_DIVIDE_320 = 1/320
 local MATH_DIVIDE_16 = 1/16
@@ -1491,6 +1528,7 @@ local paletteTrans = 0
 local optionsMenuOffset = 0
 local optionsMenuOffsetMax = 210
 local function on_hud_render()
+    prevMenuAndTransition = menuAndTransition
     local FONT_USER = djui_menu_get_font()
     djui_hud_set_font(FONT_ALIASED)
     djui_hud_set_resolution(RESOLUTION_DJUI)
@@ -1513,11 +1551,16 @@ local function on_hud_render()
             djui_hud_set_color(0, 0, 0, 200)
             djui_hud_render_rect(0, 0, width, height)
             djui_hud_set_color(255, 255, 255, 255)
-            djui_hud_print_text(get_lang_string("menu_error_model"), width*0.85 - djui_hud_measure_text(get_lang_string("menu_error_model")) * 0.15 * widthScale, height * 0.5, 0.3 * widthScale)
-            djui_hud_print_text(get_lang_string("menu_error_model_fix"), width*0.85 - djui_hud_measure_text(get_lang_string("menu_error_model_fix")) * 0.1 * widthScale, height * 0.5 + 10 * widthScale, 0.2 * widthScale)
+            djui_hud_print_text(TEXT_LOCAL_MODEL_ERROR, width*0.85 - djui_hud_measure_text(TEXT_LOCAL_MODEL_ERROR) * 0.15 * widthScale, height * 0.5, 0.3 * widthScale)
+            djui_hud_print_text(TEXT_LOCAL_MODEL_ERROR_FIX, width*0.85 - djui_hud_measure_text(TEXT_LOCAL_MODEL_ERROR_FIX) * 0.1 * widthScale, height * 0.5 + 10 * widthScale, 0.2 * widthScale)
         end
 
         optionsMenuOffset = lerp(optionsMenuOffset, options and optionsMenuOffsetMax or 0, 0.1)
+
+        --Unsupported Res Warning
+        if width < 319 or width > 575 then
+            djui_hud_print_text(TEXT_RATIO_UNSUPPORTED, 5, 39, 0.5)
+        end
 
         djui_hud_set_resolution(RESOLUTION_N64)
 
@@ -1596,7 +1639,7 @@ local function on_hud_render()
             djui_hud_set_color(charColor.r*0.5 + 127, charColor.g*0.5 + 127, charColor.b*0.5 + 127, math.min(paletteTrans, 255))
             djui_hud_print_text(paletteName, x, y, 0.5)
         end
-    
+
         -- Render Background Wall
         local wallWidth = TEX_WALL_LEFT.width
         local wallHeight = TEX_WALL_LEFT.height
@@ -1610,11 +1653,11 @@ local function on_hud_render()
         djui_hud_render_texture_auto_interpolated("wall-l", TEX_WALL_LEFT, x, y, wallScale, wallScale)
         djui_hud_set_color(playerPants.r, playerPants.g, playerPants.b, 255)
         djui_hud_render_texture_auto_interpolated("wall-r", TEX_WALL_RIGHT, x, y, wallScale, wallScale)
-        
+
         -- Render Graffiti
         local graffiti = characterGraffiti[currChar] or TEX_GRAFFITI_DEFAULT
-        local graffitiWidthScale = 120/graffiti.width 
-        local graffitiHeightScale = 120/graffiti.width 
+        local graffitiWidthScale = 120/graffiti.width
+        local graffitiHeightScale = 120/graffiti.width
         djui_hud_set_color(255, 255, 255, 150)
         djui_hud_render_texture_auto_interpolated("graffiti", graffiti, wallMiddle - graffiti.width*0.5*graffitiWidthScale - menuOffsetX, height*0.5 - graffiti.height*0.5*graffitiHeightScale - menuOffsetY, graffitiWidthScale, graffitiHeightScale)
 
@@ -1633,7 +1676,7 @@ local function on_hud_render()
         local scale = 0.35
         local textScale = scale*1.5
         local buttonSpacing = 32
-        
+
         if not gridMenu then
             -- Render Character List
             gridYOffset = lerp(gridYOffset, currCharRender*buttonSpacing, 0.1)
@@ -1661,7 +1704,7 @@ local function on_hud_render()
                     -- Name Screen
                     djui_hud_set_color(charColor.r*0.5, charColor.g*0.5, charColor.b*0.5, 255)
                     djui_hud_print_text(charName, x + 112*scale + segments*16*scale*0.5 - charNameLength*textScale*0.5, y + 32*scale, textScale)
-                    
+
                     -- Bottom Info
                     djui_hud_render_rect(x + 112*scale, y + 84*scale, segments*16*scale, scale)
                     djui_hud_print_text(channel, x + 112*scale, y + 85*scale, 0.3*scale)
@@ -1792,24 +1835,19 @@ local function on_hud_render()
         if options == OPTIONS_MAIN then
             djui_hud_set_font(FONT_TINY)
             djui_hud_set_color(0, 0, 0, 255)
-            djui_hud_print_text(get_lang_string(optionData.name), tvX + 12 + (tvWidth - 12)*0.5 - djui_hud_measure_text(get_lang_string(optionData.name))*0.35, tvY + 20, 0.7)
-            local locked = optionTable[currOption].lock ~= nil and get_lang_string(optionTable[currOption].lock()) or nil
-            local toggleString = (locked == nil and "< " .. get_lang_string(optionData.toggleNames[optionData.toggle + 1]) .. " >" or locked)
+            djui_hud_print_text(optionData.name, tvX + 12 + (tvWidth - 12)*0.5 - djui_hud_measure_text(optionData.name)*0.35, tvY + 20, 0.7)
+            local locked = optionTable[currOption].lock ~= nil and optionTable[currOption].lock() or nil
+            local toggleString = (locked == nil and "< " .. optionData.toggleNames[optionData.toggle + 1] .. " >" or locked)
             djui_hud_print_text(toggleString, tvX + 12 + (tvWidth - 12)*0.5 - djui_hud_measure_text(toggleString)*0.25, tvY + 30, 0.5)
 
-            local yOffset = 0
-            for i = #optionData.description, 1, -1 do
-                local text = get_lang_string(optionData.description[i])
-                if text ~= "" and text ~= nil then
-                    local textMeasure = djui_hud_measure_text(text)
-                    local x = tvX + 12 + (tvWidth - 12)*0.5 - textMeasure*0.225
-                    local y = tvY + tvHeight + yOffset - 14
-                    djui_hud_set_color(0, 0, 0, 255)
-                    djui_hud_render_rect(x - 2, y, textMeasure*0.45 + 4, 8)
-                    djui_hud_set_color(255, 255, 255, 255)
-                    djui_hud_print_text(text, x, y, 0.45)
-                    yOffset = yOffset - 7
-                end
+            for i = 1, #optionData.description do
+                local textMeasure = djui_hud_measure_text(optionData.description[i])
+                local x = tvX + 12 + (tvWidth - 12)*0.5 - textMeasure*0.225
+                local y = tvY + tvHeight - 7*(#optionData.description + 2) + 7*i
+                djui_hud_set_color(0, 0, 0, 255)
+                djui_hud_render_rect(x - 2, y, textMeasure*0.45 + 4, 8)
+                djui_hud_set_color(255, 255, 255, 255)
+                djui_hud_print_text(optionData.description[i], x, y, 0.45)
             end
 
             -- Render Header
@@ -1817,10 +1855,10 @@ local function on_hud_render()
             djui_hud_render_rect(tvX, tvY, tvWidth, 18)
             djui_hud_set_font(FONT_ALIASED)
             djui_hud_set_color(255, 255, 255, 255)
-            djui_hud_print_text(get_lang_string("menu_options_header"), tvX + 13, tvY + 2, 0.5)
+            djui_hud_print_text("OPTIONS", tvX + 13, tvY + 2, 0.5)
             djui_hud_set_font(FONT_NORMAL)
-            local optionCategory = "... " .. string.upper(get_lang_string(optionData.category))
-            djui_hud_print_text(optionCategory, tvX + 13 + djui_hud_measure_text(get_lang_string("menu_options_header"))*0.5, tvY + 8, 0.25)
+            local optionCategory = "... " .. string.upper(optionData.category)
+            djui_hud_print_text(optionCategory, tvX + 13 + djui_hud_measure_text("OPTIONS")*0.5, tvY + 8, 0.25)
 
             -- Render Sidebar
             djui_hud_set_color(0, 0, 0, 255)
@@ -1868,7 +1906,7 @@ local function on_hud_render()
             djui_hud_render_rect(tvX, tvY, tvWidth, 21)
             djui_hud_set_color(255, 255, 255, 255)
             djui_hud_set_font(FONT_ALIASED)
-            djui_hud_print_text(get_lang_string("menu_credits_header"), tvX + tvWidth*0.5 - djui_hud_measure_text(get_lang_string("menu_credits_header"))*0.2, tvY + 2, 0.4)
+            djui_hud_print_text(TEXT_CREDITS_HEADER, tvX + tvWidth*0.5 - djui_hud_measure_text(TEXT_CREDITS_HEADER)*0.2, tvY + 2, 0.4)
             djui_hud_set_font(FONT_SPECIAL)
             djui_hud_print_text(creditTable[currCredits].packName, tvX + tvWidth*0.5 - djui_hud_measure_text(creditTable[currCredits].packName)*0.1, tvY + 14, 0.2)
         else
@@ -1906,20 +1944,16 @@ local function on_hud_render()
         djui_hud_set_rotation(0, 0, 0)
 
         djui_hud_set_color(menuColor.r, menuColor.g, menuColor.b, 255)
-        local verString = get_lang_string("menu_version", MOD_VERSION_STRING) 
-        if seasonalEvent == SEASON_EVENT_BIRTHDAY then
-            verString = verString .. " | " .. get_lang_string("menu_birthday", get_date_and_time().year - 123)
-        end
-        djui_hud_print_text(verString, 2, height - 7, 0.4)
+        djui_hud_print_text(TEXT_VERSION, 2, height - 7, 0.4)
         local currMenu = gridMenu and MENU_BINDS_GRID or MENU_BINDS_DEFAULT
         if options == OPTIONS_MAIN then
-            currMenu = MENU_BINDS_OPTIONS 
+            currMenu = MENU_BINDS_OPTIONS
         elseif options == OPTIONS_CREDITS then
             currMenu = MENU_BINDS_GRID
         end
         local bindInfo = TEXT_TABLE_MENU_BINDS[currMenu][math.floor(get_global_timer()/150)%(#TEXT_TABLE_MENU_BINDS[currMenu]) + 1]
         djui_hud_print_text(bindInfo.bind, width*0.15 - djui_hud_measure_text(bindInfo.bind)*0.4, height - 35, 0.8)
-        djui_hud_print_text(get_lang_string(bindInfo.desc), width*0.15 - djui_hud_measure_text(get_lang_string(bindInfo.desc))*0.4, height - 25, 0.8)
+        djui_hud_print_text(bindInfo.desc, width*0.15 - djui_hud_measure_text(bindInfo.desc)*0.4, height - 25, 0.8)
 
         -- API Rendering (Above Text)
         djui_hud_set_color(menuColor.r, menuColor.g, menuColor.b, 255)
@@ -1976,33 +2010,34 @@ local function on_hud_render()
 
     -- Info / Z Open Bind on Pause Menu
     if is_game_paused() and not djui_hud_is_pause_menu_created() and gMarioStates[0].action ~= ACT_EXIT_LAND_SAVE_DIALOG then
+        local currCharY = 0
         djui_hud_set_resolution(RESOLUTION_DJUI)
         djui_hud_set_font(FONT_USER)
-        local currCharY = 27
-        local text = (not easterEggDynOS
-        and (menu_is_allowed() and "Z " .. get_lang_string("button") .. " - " .. get_lang_string("mod_name") or get_lang_string("menu_unavailible"))
-        or "Z - DynOS")
-        width = djui_hud_get_screen_width() - djui_hud_measure_text(text)
-        djui_hud_set_color(255, 255, 255, 255)
-        djui_hud_print_text(text, width - 20, 16, 1)
+        if optionTable[optionTableRef.openInputs].toggle == 1 then
+            currCharY = 27
+            local text = menu_is_allowed() and TEXT_PAUSE_Z_OPEN or TEXT_PAUSE_UNAVAILABLE
+            width = djui_hud_get_screen_width() - djui_hud_measure_text(text)
+            djui_hud_set_color(255, 255, 255, 255)
+            djui_hud_print_text(text, width - 20, 16, 1)
+        end
 
         local character = characterTable[currChar][characterTable[currChar].currAlt]
         local charName = string_underscore_to_space(character.name)
-        local TEXT_PAUSE_CURR_CHAR_WITH_NAME = get_lang_string("menu_curr_char") .. charName
+        local TEXT_PAUSE_CURR_CHAR_WITH_NAME = TEXT_PAUSE_CURR_CHAR .. charName
         width = djui_hud_get_screen_width() - djui_hud_measure_text(TEXT_PAUSE_CURR_CHAR_WITH_NAME)
         local charColor = character.color
         djui_hud_set_color(255, 255, 255, 255)
-        djui_hud_print_text(get_lang_string("menu_curr_char"), width - 20, 16 + currCharY, 1)
+        djui_hud_print_text(TEXT_PAUSE_CURR_CHAR, width - 20, 16 + currCharY, 1)
         djui_hud_set_color(charColor.r, charColor.g, charColor.b, 255)
         djui_hud_print_text(charName, djui_hud_get_screen_width() - djui_hud_measure_text(charName) - 20, 16 + currCharY, 1)
 
         local text = nil
         if gGlobalSyncTable.charSelectRestrictMovesets > 0 and gGlobalSyncTable.charSelectRestrictPalettes > 0 then
-            text = get_lang_string("menu_restrict_moveset_and_palette")
+            text = TEXT_MOVESET_AND_PALETTE_RESTRICTED
         elseif gGlobalSyncTable.charSelectRestrictMovesets > 0 then
-            text = get_lang_string("menu_restrict_moveset")
+            text = TEXT_MOVESET_RESTRICTED
         elseif gGlobalSyncTable.charSelectRestrictPalettes > 0 then
-            text = get_lang_string("menu_restrict_palette")
+            text = TEXT_PALETTE_RESTRICTED
         end
         if text ~= nil then
             width = djui_hud_get_screen_width() - djui_hud_measure_text(text)
@@ -2054,8 +2089,13 @@ local function before_mario_update(m)
     end
 
     -- Menu Inputs
-    if is_game_paused() and m.action ~= ACT_EXIT_LAND_SAVE_DIALOG and (controller.buttonPressed & Z_TRIG) ~= 0 then
+    if is_game_paused() and m.action ~= ACT_EXIT_LAND_SAVE_DIALOG and (controller.buttonPressed & Z_TRIG) ~= 0 and optionTable[optionTableRef.openInputs].toggle == 1 then
         menu = true
+    end
+    if not menu and (controller.buttonDown & D_JPAD) ~= 0 and m.action ~= ACT_EXIT_LAND_SAVE_DIALOG and optionTable[optionTableRef.openInputs].toggle == 2 then
+        if (controller.buttonDown & R_TRIG) ~= 0 or not ommActive then
+            menu = true
+        end
     end
 
     if not menu_is_allowed(m) then
@@ -2091,7 +2131,7 @@ local function before_mario_update(m)
                     until update_character_render_table()
                     gearRotationTarget = gearRotationTarget + 0x10000/#characterCategories
                     categoryOpenTimer = 150
-                    
+
                     play_sound(SOUND_MENU_CAMERA_TURN, cameraToObject)
                 end
             )
@@ -2108,7 +2148,7 @@ local function before_mario_update(m)
                     play_sound(SOUND_MENU_CAMERA_TURN, cameraToObject)
                 end
             )
-            
+
             if not gridMenu then
                 -- List Controls
                 run_func_with_condition_and_cooldown(FUNC_INDEX_VERTICAL,
@@ -2150,7 +2190,7 @@ local function before_mario_update(m)
                         end
                     )
                 end
-            
+
             else
                 -- Grid Controls
                 run_func_with_condition_and_cooldown(FUNC_INDEX_VERTICAL,
@@ -2184,7 +2224,7 @@ local function before_mario_update(m)
                         play_sound(SOUND_MENU_MESSAGE_NEXT_PAGE, cameraToObject)
                     end
                 )
-                
+
                 -- Alt switcher
                 if #characterTable[currChar] > 1 then
                     run_func_with_condition_and_cooldown(FUNC_INDEX_ALT,
@@ -2387,26 +2427,30 @@ local function chat_command(msg)
             menu = not menu
             return true
         else
-            djui_chat_message_create(get_lang_string("menu_unavailible"))
+            djui_chat_message_create(TEXT_PAUSE_UNAVAILABLE)
             return true
         end
     end
 
     -- Help Prompt Check
     if msg == "?" or msg == "help" then
-        djui_chat_message_create(get_lang_string("menu_help"))
+        djui_chat_message_create("Character Select's Avalible Commands:" ..
+        "\n\\#ffff33\\/char-select help\\#ffffff\\ - Returns Avalible Commands" ..
+        "\n\\#ffff33\\/char-select menu\\#ffffff\\ - Opens the Menu" ..
+        "\n\\#ffff33\\/char-select [name/num]\\#ffffff\\ - Switches to Character" ..
+        "\n\\#ff3333\\/char-select reset\\#ffffff\\ - Resets your Save Data")
         return true
     end
 
     -- Reset Save Data Check
     if msg == "reset" or (msg == "confirm" and promptedAreYouSure) then
-        reset_options()
+        reset_options(true)
         return true
     end
 
-    -- Stop Character checks if API disallows it 
+    -- Stop Character checks if API disallows it
     if not menu_is_allowed() or charBeingSet then
-        djui_chat_message_create(get_lang_string("menu_char_cannot_change"))
+        djui_chat_message_create("Character Cannot be Changed")
         return true
     end
 
@@ -2417,7 +2461,7 @@ local function chat_command(msg)
             for a = 1, #characterTable[i] do
                 if msg == string.lower(characterTable[i][a].name) or msg == saveName then
                     force_set_character(i, msg ~= saveName and a or 1)
-                    djui_chat_message_create(get_lang_string("menu_char_set", characterTable[i][characterTable[i].currAlt].name))
+                    djui_chat_message_create('Character set to "' .. characterTable[i][characterTable[i].currAlt].name .. '" Successfully!')
                     return true
                 end
             end
@@ -2432,13 +2476,13 @@ local function chat_command(msg)
         altNum = altNum and altNum or 1
         if charNum > 0 and charNum <= #characterTable and characterTable[charNum].locked ~= LOCKED_TRUE then
             force_set_character(charNum, altNum)
-            djui_chat_message_create(get_lang_string("menu_char_set", characterTable[charNum][altNum].name))
+            djui_chat_message_create('Character set to "' .. characterTable[charNum][altNum].name .. '" Successfully!')
             return true
         end
     end
 
-    djui_chat_message_create(get_lang_string("menu_char_not_found"))
+    djui_chat_message_create("Character Not Found")
     return true
 end
 
-hook_chat_command("char-select", "- " .. get_lang_string("cmd_desc"), chat_command)
+hook_chat_command("char-select", "- Opens the Character Select Menu", chat_command)
